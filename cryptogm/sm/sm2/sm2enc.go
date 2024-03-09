@@ -5,15 +5,11 @@
 package sm2
 
 import (
-	"errors"
 	"fmt"
 	"github.com/xlcetc/cryptogm/elliptic/sm2curve"
 	"io"
 	"math/big"
 )
-
-var EncryptionErr = errors.New("sm2: encryption error")
-var DecryptionErr = errors.New("sm2: decryption error")
 
 var T2x = make([]*big.Int, 256)
 var T2y = make([]*big.Int, 256)
@@ -57,42 +53,6 @@ func LgwHDec(key *PrivateKey, c1x, c1y, c2x, c2y *big.Int) (int, error) {
 		}
 	}
 	return m, nil
-}
-
-// uncompressed form, s=04||x||y
-func pointToBytes(x, y *big.Int) []byte {
-	buf := []byte{}
-
-	xBuf := x.Bytes()
-	yBuf := y.Bytes()
-
-	xPadding := make([]byte, 32)
-	yPadding := make([]byte, 32)
-	if n := len(xBuf); n < 32 {
-		xBuf = append(xPadding[:32-n], xBuf...)
-	}
-
-	if n := len(yBuf); n < 32 {
-		yBuf = append(yPadding[:32-n], yBuf...)
-	}
-
-	//s = 04||x||y
-	buf = append(buf, 0x4)
-	buf = append(buf, xBuf...)
-	buf = append(buf, yBuf...)
-
-	return buf
-}
-
-func pointFromBytes(buf []byte) (x, y *big.Int) {
-	if len(buf) != 65 || buf[0] != 0x4 {
-		return nil, nil
-	}
-
-	x = new(big.Int).SetBytes(buf[1:33])
-	y = new(big.Int).SetBytes(buf[33:])
-
-	return
 }
 
 func init() {
