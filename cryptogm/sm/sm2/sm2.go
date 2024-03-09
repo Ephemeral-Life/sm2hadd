@@ -7,7 +7,6 @@ package sm2
 
 import (
 	"crypto"
-	"errors"
 	"github.com/xlcetc/cryptogm/elliptic/sm2curve"
 	"io"
 	"math/big"
@@ -44,20 +43,6 @@ func (priv *PrivateKey) Public() crypto.PublicKey {
 
 var one = new(big.Int).SetInt64(1)
 
-func randFieldElement(c sm2curve.Curve, rand io.Reader) (k *big.Int, err error) {
-	params := c.Params()
-	b := make([]byte, params.BitSize/8+8)
-	_, err = io.ReadFull(rand, b)
-	if err != nil {
-		return
-	}
-	k = new(big.Int).SetBytes(b)
-	n := new(big.Int).Sub(params.N, one)
-	k.Mod(k, n)
-	k.Add(k, one)
-	return
-}
-
 func GenerateKey(rand io.Reader) (*PrivateKey, error) {
 	c := sm2curve.P256()
 
@@ -75,8 +60,6 @@ func GenerateKey(rand io.Reader) (*PrivateKey, error) {
 	return priv, nil
 }
 
-var errZeroParam = errors.New("zero parameter")
-
 func _generateRandK(rand io.Reader, c sm2curve.Curve) (k *big.Int) {
 	params := c.Params()
 	two := big.NewInt(2)
@@ -91,77 +74,6 @@ func _generateRandK(rand io.Reader, c sm2curve.Curve) (k *big.Int) {
 	return
 }
 
-//Za = sm3(ENTL||IDa||a||b||Gx||Gy||Xa||Xy)
-
-func SignWithDigest(rand io.Reader, priv *PrivateKey, digest []byte) (r, s *big.Int, err error) {
-	var one = new(big.Int).SetInt64(1)
-	//if len(hash) < 32 {
-	//	err = errors.New("The length of hash has short than what SM2 need.")
-	//	return
-	//}
-
-	e := new(big.Int).SetBytes(digest)
-	k := generateRandK(rand, priv.PublicKey.Curve)
-
-	x1, _ := priv.PublicKey.Curve.ScalarBaseMult(k.Bytes())
-
-	n := priv.PublicKey.Curve.Params().N
-
-	r = new(big.Int).Add(e, x1)
-
-	r.Mod(r, n)
-
-	s1 := new(big.Int).Mul(r, priv.D)
-	s1.Mod(s1, n)
-	s1.Sub(k, s1)
-	s1.Mod(s1, n)
-
-	s2 := new(big.Int)
-	if priv.DInv == nil {
-		s2 = s2.Add(one, priv.D)
-		s2.ModInverse(s2, n)
-	} else {
-		s2 = priv.DInv
-	}
-
-	s = new(big.Int).Mul(s1, s2)
-	s.Mod(s, n)
-
-	return
-}
-
-func VerifyWithDigest(pub *PublicKey, digest []byte, r, s *big.Int) bool {
-	c := pub.Curve
-	N := c.Params().N
-
-	if r.Sign() <= 0 || s.Sign() <= 0 {
-		return false
-	}
-	if r.Cmp(N) >= 0 || s.Cmp(N) >= 0 {
-		return false
-	}
-
-	n := pub.Curve.Params().N
-
-	e := new(big.Int).SetBytes(digest)
-
-	t := new(big.Int).Add(r, s)
-	// Check if implements S1*g + S2*p
-	//Using fast multiplication CombinedMult.
-	var x1 *big.Int
-	if opt, ok := c.(optMethod); ok && (pub.PreComputed != nil) {
-		x1, _ = opt.CombinedMult(pub.PreComputed, s.Bytes(), t.Bytes())
-	} else {
-		x11, y11 := c.ScalarMult(pub.X, pub.Y, t.Bytes())
-		x12, y12 := c.ScalarBaseMult(s.Bytes())
-		x1, _ = c.Add(x11, y11, x12, y12)
-	}
-	x := new(big.Int).Add(e, x1)
-	x = x.Mod(x, n)
-
-	return x.Cmp(r) == 0
-}
-
 type zr struct {
 	io.Reader
 }
@@ -172,87 +84,3 @@ func (z *zr) Read(dst []byte) (n int, err error) {
 	}
 	return len(dst), nil
 }
-
-var zeroReader = &zr{}
-
-//func OptSign(rand io.Reader, priv *PrivateKey, msg []byte) (r, s *big.Int, err error) {
-//	//var one = new(big.Int).SetInt64(1)
-//	//if len(hash) < 32 {
-//	//	err = errors.New("The length of hash has short than what SM2 need.")
-//	//	return
-//	//}
-//
-//	var m = make([]byte, 32+len(msg))
-//	copy(m, getZ(&priv.PublicKey))
-//	copy(m[32:], msg)
-//
-//	//h := sm3.New()
-//	//hash := h.Sum(m)
-//	hash := sm3.SumSM3(m)
-//	e := new(big.Int).SetBytes(hash[:])
-//	k := generateRandK(rand, priv.PublicKey.Curve)
-//
-//	x1, _ := priv.PublicKey.Curve.ScalarBaseMult(k.Bytes())
-//
-//	n := priv.PublicKey.Curve.Params().N
-//
-//	r = new(big.Int).Add(e, x1)
-//
-//	r.Mod(r, n)
-//
-//	s1 := new(big.Int).Mul(r, priv.D)
-//	//s1.Mod(s1, n)
-//	s1.Sub(k, s1)
-//	s1.Mod(s1, n)
-//
-//	//s2 := new(big.Int).Add(one, priv.D)
-//	//s2.Mod(s2, n)
-//	//s2.ModInverse(s2, n)
-//	s = new(big.Int).Mul(s1, priv.DInv)
-//	s.Mod(s, n)
-//
-//	return
-//}
-//
-//func OptVerify(pub *PublicKey, msg []byte, r, s *big.Int) bool {
-//	c := pub.Curve
-//	N := c.Params().N
-//
-//	if r.Sign() <= 0 || s.Sign() <= 0 {
-//		return false
-//	}
-//	if r.Cmp(N) >= 0 || s.Cmp(N) >= 0 {
-//		return false
-//	}
-//
-//	n := c.Params().N
-//
-//	var m = make([]byte, 32+len(msg))
-//	copy(m, getZ(pub))
-//	copy(m[32:], msg)
-//	//h := sm3.New()
-//	//hash := h.Sum(m)
-//	hash := sm3.SumSM3(m)
-//	e := new(big.Int).SetBytes(hash[:])
-//
-//	t := new(big.Int).Add(r, s)
-//
-//	// Check if implements S1*g + S2*p
-//	//Using fast multiplication CombinedMult.
-//	var x1 *big.Int
-//	if opt, ok := c.(optMethod); ok {
-//		//x11, y11 := opt.PreScalarMult(pub.PreComputed,t.Bytes())
-//		//x12, y12 := c.ScalarBaseMult(s.Bytes())
-//		//x1, _ = c.Add(x11, y11, x12, y12)
-//		x1, _ = opt.CombinedMult(pub.PreComputed, s.Bytes(), t.Bytes())
-//	} else {
-//		x11, y11 := c.ScalarMult(pub.X, pub.Y, t.Bytes())
-//		x12, y12 := c.ScalarBaseMult(s.Bytes())
-//		x1, _ = c.Add(x11, y11, x12, y12)
-//	}
-//
-//	x := new(big.Int).Add(e, x1)
-//	x = x.Mod(x, n)
-//
-//	return x.Cmp(r) == 0
-//}
