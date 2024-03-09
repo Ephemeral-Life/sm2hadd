@@ -9,7 +9,6 @@ import (
 )
 
 var sm2hadd time.Duration = 0
-var sm2hmul time.Duration = 0
 
 func testsm2hadd(m1 *big.Int, m2 *big.Int) {
 	sk, _ := sm2.GenerateKey(rand.Reader)
