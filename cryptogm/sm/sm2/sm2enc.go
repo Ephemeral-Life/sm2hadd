@@ -49,79 +49,6 @@ func keyDerivation(Z []byte, klen int) []byte {
 	return K[:klen/8]
 }
 
-func KeyDerivation(Z []byte, klen int) []byte {
-	var ct = 1
-	if klen%8 != 0 {
-		return nil
-	}
-
-	K := make([]byte, int(math.Ceil(float64(klen)/(sm3.Size*8))*sm3.Size))
-	v := sm3.Size * 8
-
-	l := int(math.Ceil(float64(klen) / float64(v)))
-
-	var m = make([]byte, len(Z)+4)
-	var vBytes = make([]byte, 4)
-	copy(m, Z)
-
-	for ; ct <= l; ct++ {
-		binary.BigEndian.PutUint32(vBytes, uint32(ct))
-		copy(m[len(Z):], vBytes)
-
-		hash := sm3.SumSM3(m)
-		copy(K[(ct-1)*sm3.Size:], hash[:])
-	}
-	return K[:klen/8]
-}
-
-func LgwEnc(rand io.Reader, key *PublicKey, msg []byte) (x, y *big.Int, c2, c3 []byte, err error) {
-	k := generateRandK(rand, key.Curve)
-	// C1 = k[G]
-regen:
-	x1, y1 := key.Curve.ScalarBaseMult(k.Bytes())
-	var x2, y2 *big.Int
-	// [k]PK
-	x2, y2 = key.Curve.ScalarMult(key.X, key.Y, k.Bytes())
-	//t=KDF(x2||m||y2,klen)
-	xBuf := x2.Bytes()
-	yBuf := y2.Bytes()
-	xPadding := make([]byte, 32)
-	yPadding := make([]byte, 32)
-	if n := len(xBuf); n < 32 {
-		xBuf = append(xPadding[:32-n], xBuf...)
-	}
-	if n := len(yBuf); n < 32 {
-		yBuf = append(yPadding[:32-n], yBuf...)
-	}
-	//z=x2||y2
-	Z := make([]byte, 64)
-	copy(Z, xBuf)
-	copy(Z[32:], yBuf)
-	t := keyDerivation(Z, len(msg)*8)
-	if t == nil {
-		return nil, nil, nil, nil, EncryptionErr
-	}
-	for i, v := range t {
-		if v != 0 {
-			break
-		}
-		if i == len(t)-1 {
-			goto regen
-		}
-	}
-	//M^t
-	for i, v := range t {
-		t[i] = v ^ msg[i]
-	}
-	m3 := make([]byte, 64+len(msg))
-	copy(m3, xBuf)
-	copy(m3[32:], msg)
-	copy(m3[32+len(msg):], yBuf)
-	h := sm3.SumSM3(m3)
-	c3 = h[:]
-	return x1, y1, t, c3, nil
-}
-
 func LgwHEnc(rand io.Reader, key *PublicKey, m *big.Int) (x1, y1, c2x, c2y *big.Int) {
 	k := generateRandK(rand, key.Curve)
 	// C1 = k[G]
@@ -236,59 +163,6 @@ regen:
 	return x1, y1, t, c3, nil
 }
 
-func LgwDec(x1, y1 *big.Int, c2, c3 []byte, key *PrivateKey) ([]byte, error) {
-	//dB*C1
-	x2, y2 := key.Curve.ScalarMult(x1, y1, key.D.Bytes())
-
-	xBuf := x2.Bytes()
-	yBuf := y2.Bytes()
-
-	xPadding := make([]byte, 32)
-	yPadding := make([]byte, 32)
-	if n := len(xBuf); n < 32 {
-		xBuf = append(xPadding[:32-n], xBuf...)
-	}
-
-	if n := len(yBuf); n < 32 {
-		yBuf = append(yPadding[:32-n], yBuf...)
-	}
-
-	//z=x2||y2
-	Z := make([]byte, 64)
-	copy(Z, xBuf)
-	copy(Z[32:], yBuf)
-
-	t := keyDerivation(Z, len(c2)*8)
-	if t == nil {
-		return nil, DecryptionErr
-	}
-	for i, v := range t {
-		if v != 0 {
-			break
-		}
-		if i == len(t)-1 {
-			return nil, DecryptionErr
-		}
-	}
-
-	// m` = c2 ^ t
-	for i, v := range t {
-		t[i] = v ^ c2[i]
-	}
-
-	//validate
-	_u := make([]byte, 64+len(t))
-	copy(_u, xBuf)
-	copy(_u[32:], t)
-	copy(_u[32+len(t):], yBuf)
-	u := sm3.SumSM3(_u)
-	if !bytes.Equal(u[:], c3) {
-		return nil, DecryptionErr
-	}
-
-	return t, nil
-}
-
 func Decrypt(c []byte, key *PrivateKey) ([]byte, error) {
 	x1, y1 := pointFromBytes(c[:65])
 
@@ -389,12 +263,24 @@ func init() {
 	y.Add(c.Params().Gy, y)
 
 	T1[c.Params().Gx.String()] = 1
+
+	total := 16777216 // 总迭代次数
+	percentStep := 1  // 每1%进度更新一次
+	lastPercent := -1 // 初始化为-1，确保第一次进度会被打印
+
 	for ; i <= 16777216; i++ {
 		//fmt.Printf("%d\n", i)
 		x, y = c.Add(x, y, c.Params().Gx, c.Params().Gy)
 		T1[x.String()] = i
 		if i == 44 {
 			fmt.Println(x.String())
+		}
+
+		// 计算当前进度的百分比
+		currentPercent := int(float64(i) / float64(total) * 100)
+		if currentPercent != lastPercent && currentPercent%percentStep == 0 {
+			fmt.Printf("当前进度：%d%%\n", currentPercent)
+			lastPercent = currentPercent
 		}
 	}
 	var j int64 = 0
