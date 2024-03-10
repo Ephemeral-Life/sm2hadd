@@ -5,6 +5,7 @@
 package sm2
 
 import (
+	"C"
 	"fmt"
 	"github.com/xlcetc/cryptogm/elliptic/sm2curve"
 	"io"
@@ -15,6 +16,7 @@ var T2x = make([]*big.Int, 256)
 var T2y = make([]*big.Int, 256)
 var T1 = make(map[string]int64, 16777216)
 
+//export LgwHEnc
 func LgwHEnc(rand io.Reader, key *PublicKey, m *big.Int) (x1, y1, c2x, c2y *big.Int) {
 	k := generateRandK(rand, key.Curve)
 	// C1 = k[G]
@@ -29,6 +31,7 @@ func LgwHEnc(rand io.Reader, key *PublicKey, m *big.Int) (x1, y1, c2x, c2y *big.
 	return x1, y1, c2x, c2y
 }
 
+//export LgwHDec
 func LgwHDec(key *PrivateKey, c1x, c1y, c2x, c2y *big.Int) (int, error) {
 	fmt.Printf("\n\nkey: %v\nc1x: %v\nc1y: %v\nc2x: %v\nc2y: %v\n", key, c1x, c1y, c2x, c2y)
 	var m int = -1

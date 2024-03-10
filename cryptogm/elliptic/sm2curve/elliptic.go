@@ -14,6 +14,7 @@ package sm2curve
 // reverse the transform than to operate in affine coordinates.
 
 import (
+	"C"
 	"math/big"
 	"sync"
 )

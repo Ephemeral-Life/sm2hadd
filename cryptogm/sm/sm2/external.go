@@ -5,6 +5,7 @@
 package sm2
 
 import (
+	"C"
 	"math/big"
 )
 
