@@ -1,6 +1,7 @@
 package main
 
 import (
+	"C"
 	"crypto/rand"
 	"fmt"
 	"github.com/xlcetc/cryptogm/sm/sm2"
@@ -43,14 +44,16 @@ func testsm2hadd(m1 *big.Int, m2 *big.Int) {
 	sm2hadd = sm2hadd + cost1
 }
 
-func main() {
-	for i := 0; i < 100; i++ {
-		// 准备测试数据
-		m1, _ := rand.Int(rand.Reader, big.NewInt(10000))
-		m2, _ := rand.Int(rand.Reader, big.NewInt(10000))
-		// 进行同态加法测试
-		testsm2hadd(m1, m2)
-	}
-	fmt.Printf("100次同态加法总执行时间: %v ms\n", sm2hadd.Milliseconds())
-	//fmt.Printf("平均每次同态加法执行时间: %v ms\n", sm2hadd.Milliseconds()/100)
-}
+//func main() {
+//	for i := 0; i < 100; i++ {
+//		// 准备测试数据
+//		m1, _ := rand.Int(rand.Reader, big.NewInt(10000))
+//		m2, _ := rand.Int(rand.Reader, big.NewInt(10000))
+//		// 进行同态加法测试
+//		testsm2hadd(m1, m2)
+//	}
+//	fmt.Printf("100次同态加法总执行时间: %v ms\n", sm2hadd.Milliseconds())
+//	//fmt.Printf("平均每次同态加法执行时间: %v ms\n", sm2hadd.Milliseconds()/100)
+//}
+
+func main() {}
