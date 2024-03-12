@@ -2,34 +2,45 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"github.com/Ephemeral-Life/sm2hadd/pb"
+	"github.com/Ephemeral-Life/sm2hadd/pb" // 替换为实际生成的protobuf包的路径
 	"google.golang.org/grpc"
+	"log"
 	"net"
 )
 
 type server struct {
-	pb.UnimplementedGreeterServer
+	pb.UnimplementedSM2CryptoServiceServer
 }
 
-func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloResponse, error) {
-	return &pb.HelloResponse{Reply: "Hello " + in.Name}, nil
+func (s *server) GenerateKeyPair(ctx context.Context, in *pb.Empty) (*pb.KeyPair, error) {
+	// 这里应调用之前定义的生成密钥对的函数，下同
+	return &pb.KeyPair{}, nil
+}
+
+func (s *server) Encrypt(ctx context.Context, req *pb.EncryptRequest) (*pb.EncryptResponse, error) {
+	// 加密逻辑
+	return &pb.EncryptResponse{}, nil
+}
+
+func (s *server) Decrypt(ctx context.Context, req *pb.DecryptRequest) (*pb.DecryptResponse, error) {
+	// 解密逻辑
+	return &pb.DecryptResponse{}, nil
+}
+
+func (s *server) HomomorphicAdd(ctx context.Context, req *pb.HomomorphicAddRequest) (*pb.HomomorphicAddResponse, error) {
+	// 同态加法逻辑
+	return &pb.HomomorphicAddResponse{}, nil
 }
 
 func main() {
-	// 监听本地的8972端口
-	lis, err := net.Listen("tcp", ":8972")
+	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {
-		fmt.Printf("failed to listen: %v", err)
-		return
+		log.Fatalf("failed to listen: %v", err)
 	}
-	s := grpc.NewServer()                  // 创建gRPC服务器
-	pb.RegisterGreeterServer(s, &server{}) // 在gRPC服务端注册服务
-	// 启动服务
-	fmt.Printf("server start: 127.0.0.1:8972")
-	err = s.Serve(lis)
-	if err != nil {
-		fmt.Printf("failed to serve: %v", err)
-		return
+	s := grpc.NewServer()
+	pb.RegisterSM2CryptoServiceServer(s, &server{})
+	log.Printf("server listening at %v", lis.Addr())
+	if err := s.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %v", err)
 	}
 }

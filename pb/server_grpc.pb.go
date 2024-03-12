@@ -18,88 +18,194 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// GreeterClient is the client API for Greeter service.
+// SM2CryptoServiceClient is the client API for SM2CryptoService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type GreeterClient interface {
-	// SayHello 方法
-	SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloResponse, error)
+type SM2CryptoServiceClient interface {
+	GenerateKeyPair(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*KeyPair, error)
+	Encrypt(ctx context.Context, in *EncryptRequest, opts ...grpc.CallOption) (*EncryptResponse, error)
+	Decrypt(ctx context.Context, in *DecryptRequest, opts ...grpc.CallOption) (*DecryptResponse, error)
+	HomomorphicAdd(ctx context.Context, in *HomomorphicAddRequest, opts ...grpc.CallOption) (*HomomorphicAddResponse, error)
 }
 
-type greeterClient struct {
+type sM2CryptoServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewGreeterClient(cc grpc.ClientConnInterface) GreeterClient {
-	return &greeterClient{cc}
+func NewSM2CryptoServiceClient(cc grpc.ClientConnInterface) SM2CryptoServiceClient {
+	return &sM2CryptoServiceClient{cc}
 }
 
-func (c *greeterClient) SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloResponse, error) {
-	out := new(HelloResponse)
-	err := c.cc.Invoke(ctx, "/pb.Greeter/SayHello", in, out, opts...)
+func (c *sM2CryptoServiceClient) GenerateKeyPair(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*KeyPair, error) {
+	out := new(KeyPair)
+	err := c.cc.Invoke(ctx, "/sm2crypto.SM2CryptoService/GenerateKeyPair", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// GreeterServer is the server API for Greeter service.
-// All implementations must embed UnimplementedGreeterServer
+func (c *sM2CryptoServiceClient) Encrypt(ctx context.Context, in *EncryptRequest, opts ...grpc.CallOption) (*EncryptResponse, error) {
+	out := new(EncryptResponse)
+	err := c.cc.Invoke(ctx, "/sm2crypto.SM2CryptoService/Encrypt", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *sM2CryptoServiceClient) Decrypt(ctx context.Context, in *DecryptRequest, opts ...grpc.CallOption) (*DecryptResponse, error) {
+	out := new(DecryptResponse)
+	err := c.cc.Invoke(ctx, "/sm2crypto.SM2CryptoService/Decrypt", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *sM2CryptoServiceClient) HomomorphicAdd(ctx context.Context, in *HomomorphicAddRequest, opts ...grpc.CallOption) (*HomomorphicAddResponse, error) {
+	out := new(HomomorphicAddResponse)
+	err := c.cc.Invoke(ctx, "/sm2crypto.SM2CryptoService/HomomorphicAdd", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// SM2CryptoServiceServer is the server API for SM2CryptoService service.
+// All implementations must embed UnimplementedSM2CryptoServiceServer
 // for forward compatibility
-type GreeterServer interface {
-	// SayHello 方法
-	SayHello(context.Context, *HelloRequest) (*HelloResponse, error)
-	mustEmbedUnimplementedGreeterServer()
+type SM2CryptoServiceServer interface {
+	GenerateKeyPair(context.Context, *Empty) (*KeyPair, error)
+	Encrypt(context.Context, *EncryptRequest) (*EncryptResponse, error)
+	Decrypt(context.Context, *DecryptRequest) (*DecryptResponse, error)
+	HomomorphicAdd(context.Context, *HomomorphicAddRequest) (*HomomorphicAddResponse, error)
+	mustEmbedUnimplementedSM2CryptoServiceServer()
 }
 
-// UnimplementedGreeterServer must be embedded to have forward compatible implementations.
-type UnimplementedGreeterServer struct {
+// UnimplementedSM2CryptoServiceServer must be embedded to have forward compatible implementations.
+type UnimplementedSM2CryptoServiceServer struct {
 }
 
-func (UnimplementedGreeterServer) SayHello(context.Context, *HelloRequest) (*HelloResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SayHello not implemented")
+func (UnimplementedSM2CryptoServiceServer) GenerateKeyPair(context.Context, *Empty) (*KeyPair, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GenerateKeyPair not implemented")
 }
-func (UnimplementedGreeterServer) mustEmbedUnimplementedGreeterServer() {}
+func (UnimplementedSM2CryptoServiceServer) Encrypt(context.Context, *EncryptRequest) (*EncryptResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Encrypt not implemented")
+}
+func (UnimplementedSM2CryptoServiceServer) Decrypt(context.Context, *DecryptRequest) (*DecryptResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Decrypt not implemented")
+}
+func (UnimplementedSM2CryptoServiceServer) HomomorphicAdd(context.Context, *HomomorphicAddRequest) (*HomomorphicAddResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method HomomorphicAdd not implemented")
+}
+func (UnimplementedSM2CryptoServiceServer) mustEmbedUnimplementedSM2CryptoServiceServer() {}
 
-// UnsafeGreeterServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to GreeterServer will
+// UnsafeSM2CryptoServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to SM2CryptoServiceServer will
 // result in compilation errors.
-type UnsafeGreeterServer interface {
-	mustEmbedUnimplementedGreeterServer()
+type UnsafeSM2CryptoServiceServer interface {
+	mustEmbedUnimplementedSM2CryptoServiceServer()
 }
 
-func RegisterGreeterServer(s grpc.ServiceRegistrar, srv GreeterServer) {
-	s.RegisterService(&Greeter_ServiceDesc, srv)
+func RegisterSM2CryptoServiceServer(s grpc.ServiceRegistrar, srv SM2CryptoServiceServer) {
+	s.RegisterService(&SM2CryptoService_ServiceDesc, srv)
 }
 
-func _Greeter_SayHello_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(HelloRequest)
+func _SM2CryptoService_GenerateKeyPair_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GreeterServer).SayHello(ctx, in)
+		return srv.(SM2CryptoServiceServer).GenerateKeyPair(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/pb.Greeter/SayHello",
+		FullMethod: "/sm2crypto.SM2CryptoService/GenerateKeyPair",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GreeterServer).SayHello(ctx, req.(*HelloRequest))
+		return srv.(SM2CryptoServiceServer).GenerateKeyPair(ctx, req.(*Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// Greeter_ServiceDesc is the grpc.ServiceDesc for Greeter service.
+func _SM2CryptoService_Encrypt_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EncryptRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SM2CryptoServiceServer).Encrypt(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sm2crypto.SM2CryptoService/Encrypt",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SM2CryptoServiceServer).Encrypt(ctx, req.(*EncryptRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SM2CryptoService_Decrypt_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DecryptRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SM2CryptoServiceServer).Decrypt(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sm2crypto.SM2CryptoService/Decrypt",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SM2CryptoServiceServer).Decrypt(ctx, req.(*DecryptRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SM2CryptoService_HomomorphicAdd_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HomomorphicAddRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SM2CryptoServiceServer).HomomorphicAdd(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sm2crypto.SM2CryptoService/HomomorphicAdd",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SM2CryptoServiceServer).HomomorphicAdd(ctx, req.(*HomomorphicAddRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// SM2CryptoService_ServiceDesc is the grpc.ServiceDesc for SM2CryptoService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var Greeter_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "pb.Greeter",
-	HandlerType: (*GreeterServer)(nil),
+var SM2CryptoService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "sm2crypto.SM2CryptoService",
+	HandlerType: (*SM2CryptoServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "SayHello",
-			Handler:    _Greeter_SayHello_Handler,
+			MethodName: "GenerateKeyPair",
+			Handler:    _SM2CryptoService_GenerateKeyPair_Handler,
+		},
+		{
+			MethodName: "Encrypt",
+			Handler:    _SM2CryptoService_Encrypt_Handler,
+		},
+		{
+			MethodName: "Decrypt",
+			Handler:    _SM2CryptoService_Decrypt_Handler,
+		},
+		{
+			MethodName: "HomomorphicAdd",
+			Handler:    _SM2CryptoService_HomomorphicAdd_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
