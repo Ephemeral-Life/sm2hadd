@@ -3,24 +3,23 @@ package main
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/Ephemeral-Life/sm2hadd/pb"
 	"github.com/xlcetc/cryptogm/sm/sm2"
-	"google.golang.org/grpc"
 	"math/big"
-	"net"
 	"time"
 )
 
 var sm2hadd time.Duration = 0
 
-func testsm2hadd(m1 *big.Int, m2 *big.Int) {
+func dosm2hadd(m1 int64, m2 int64) {
+	var m1_big = big.NewInt(m1)
+	var m2_big = big.NewInt(m2)
 	sk, _ := sm2.GenerateKey(rand.Reader)
 	pk := sk.PublicKey
 	//fmt.Println(messages[0].String())
 	//test encryption
 
-	c1x, c1y, c2x, c2y := sm2.LgwHEnc(rand.Reader, &pk, m1)
-	c1x2, c1y2, c2x2, c2y2 := sm2.LgwHEnc(rand.Reader, &pk, m2)
+	c1x, c1y, c2x, c2y := sm2.LgwHEnc(rand.Reader, &pk, m1_big)
+	c1x2, c1y2, c2x2, c2y2 := sm2.LgwHEnc(rand.Reader, &pk, m2_big)
 
 	start1 := time.Now()
 
@@ -36,7 +35,7 @@ func testsm2hadd(m1 *big.Int, m2 *big.Int) {
 	}
 
 	// 计算解密前的消息总和
-	preDecryptionSum := new(big.Int).Add(m1, m2)
+	preDecryptionSum := new(big.Int).Add(m1_big, m2_big)
 	fmt.Printf("m1:%v, m2:%v\n", m1, m2)
 	fmt.Printf("解密前的消息总和: %s\n", preDecryptionSum)
 	// 显示解密后的总和
@@ -46,39 +45,47 @@ func testsm2hadd(m1 *big.Int, m2 *big.Int) {
 	sm2hadd = sm2hadd + cost1
 }
 
-//func main() {
-//	for i := 0; i < 100; i++ {
-//		// 准备测试数据
-//		m1, _ := rand.Int(rand.Reader, big.NewInt(10000))
-//		m2, _ := rand.Int(rand.Reader, big.NewInt(10000))
-//		// 进行同态加法测试
-//		testsm2hadd(m1, m2)
-//	}
-//	fmt.Printf("100次同态加法总执行时间: %v ms\n", sm2hadd.Milliseconds())
-//	//fmt.Printf("平均每次同态加法执行时间: %v ms\n", sm2hadd.Milliseconds()/100)
-//}
-
-type server struct {
-	pb.UnimplementedGreeterServer
+func generateSM2KeyPair() (*sm2.PrivateKey, *sm2.PublicKey, error) {
+	privateKey, err := sm2.GenerateKey(rand.Reader) // 使用SM2库生成密钥对
+	if err != nil {
+		return nil, nil, err
+	}
+	publicKey := &privateKey.PublicKey // 获取公钥
+	return privateKey, publicKey, nil
 }
 
-func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloResponse, error) {
-	return &pb.HelloResponse{Reply: "Hello " + in.Name}, nil
+func encryptIntWithPublicKey(pk *sm2.PublicKey, plaintext int64) (c1x, c1y, c2x, c2y *big.Int) {
+	m_big := big.NewInt(plaintext)
+	c1x, c1y, c2x, c2y = sm2.LgwHEnc(rand.Reader, pk, m_big)
+	return c1x, c1y, c2x, c2y
+}
+
+func decryptIntWithPrivateKey(sk *sm2.PrivateKey, c1x, c1y, c2x, c2y *big.Int) (plaintext int, err error) {
+	plaintext, err = sm2.LgwHDec(sk, c1x, c1y, c2x, c2y)
+	if err != nil {
+		fmt.Printf("解密时出错: %s\n", err)
+		return 0, err
+	}
+	return plaintext, nil
+}
+
+func homomorphicAdd(pk *sm2.PublicKey, c1x1, c1y1, c2x1, c2y1, c1x2, c1y2, c2x2, c2y2 *big.Int) (sumC1x, sumC1y, sumC2x, sumC2y *big.Int) {
+	sumC1x, sumC1y = pk.Curve.Add(c1x1, c1y1, c1x2, c1y2)
+	sumC2x, sumC2y = pk.Curve.Add(c2x1, c2y1, c2x2, c2y2)
+	return sumC1x, sumC1y, sumC2x, sumC2y
 }
 
 func main() {
-	// 监听本地的8972端口
-	lis, err := net.Listen("tcp", ":8972")
-	if err != nil {
-		fmt.Printf("failed to listen: %v", err)
-		return
-	}
-	s := grpc.NewServer()                  // 创建gRPC服务器
-	pb.RegisterGreeterServer(s, &server{}) // 在gRPC服务端注册服务
-	// 启动服务
-	err = s.Serve(lis)
-	if err != nil {
-		fmt.Printf("failed to serve: %v", err)
-		return
-	}
+	//for i := 0; i < 100; i++ {
+	//	// 准备测试数据
+	//	m1, _ := rand.Int(rand.Reader, big.NewInt(10000))
+	//	m2, _ := rand.Int(rand.Reader, big.NewInt(10000))
+	//	// 进行同态加法测试
+	//	dosm2hadd(m1, m2)
+	//}
+	dosm2hadd(123, 456)
+	//fmt.Printf("100次同态加法总执行时间: %v ms\n", sm2hadd.Milliseconds())
+	//fmt.Printf("平均每次同态加法执行时间: %v ms\n", sm2hadd.Milliseconds()/100)
 }
+
+//func main() {}
