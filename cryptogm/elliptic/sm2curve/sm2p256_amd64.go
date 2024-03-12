@@ -16,7 +16,6 @@
 package sm2curve
 
 import (
-	"C"
 	"fmt"
 	"math/big"
 	"sync"

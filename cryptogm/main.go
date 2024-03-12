@@ -1,17 +1,18 @@
 package main
 
 import (
-	"C"
 	"crypto/rand"
 	"fmt"
+	"github.com/Ephemeral-Life/sm2hadd/pb"
 	"github.com/xlcetc/cryptogm/sm/sm2"
+	"google.golang.org/grpc"
 	"math/big"
+	"net"
 	"time"
 )
 
 var sm2hadd time.Duration = 0
 
-//export testsm2hadd
 func testsm2hadd(m1 *big.Int, m2 *big.Int) {
 	sk, _ := sm2.GenerateKey(rand.Reader)
 	pk := sk.PublicKey
@@ -57,4 +58,27 @@ func testsm2hadd(m1 *big.Int, m2 *big.Int) {
 //	//fmt.Printf("平均每次同态加法执行时间: %v ms\n", sm2hadd.Milliseconds()/100)
 //}
 
-func main() {}
+type server struct {
+	pb.UnimplementedGreeterServer
+}
+
+func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloResponse, error) {
+	return &pb.HelloResponse{Reply: "Hello " + in.Name}, nil
+}
+
+func main() {
+	// 监听本地的8972端口
+	lis, err := net.Listen("tcp", ":8972")
+	if err != nil {
+		fmt.Printf("failed to listen: %v", err)
+		return
+	}
+	s := grpc.NewServer()                  // 创建gRPC服务器
+	pb.RegisterGreeterServer(s, &server{}) // 在gRPC服务端注册服务
+	// 启动服务
+	err = s.Serve(lis)
+	if err != nil {
+		fmt.Printf("failed to serve: %v", err)
+		return
+	}
+}

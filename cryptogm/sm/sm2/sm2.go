@@ -6,7 +6,6 @@
 package sm2
 
 import (
-	"C"
 	"crypto"
 	"github.com/xlcetc/cryptogm/elliptic/sm2curve"
 	"io"
@@ -44,7 +43,6 @@ func (priv *PrivateKey) Public() crypto.PublicKey {
 
 var one = new(big.Int).SetInt64(1)
 
-//export GenerateKey
 func GenerateKey(rand io.Reader) (*PrivateKey, error) {
 	c := sm2curve.P256()
 
